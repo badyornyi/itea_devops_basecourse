@@ -1,1 +1,2 @@
-Some readme sheet
+Repo for ITEA DevOps Base course tasks
+Welcome
