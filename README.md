@@ -1,5 +1,6 @@
 Repo for ITEA DevOps Base course tasks<br>
 Welcome<br>
 
-Test
-2nd test
+Test<br>
+2nd test<br>
+3rd test<br>
