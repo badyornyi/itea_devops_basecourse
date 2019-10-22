@@ -27,7 +27,6 @@
                     "Ref": "KeyName"
                 },
                 "SecurityGroupIds": [
-                    {"Ref": "SecurityGroupID"},
                     {"Fn::GetAtt": ["SecurityGroup", "GroupId"]}
                 ]
             }
@@ -36,7 +35,7 @@
             "Type": "AWS::EC2::SecurityGroup",
             "Properties": {
                 "GroupDescription": "SSH Access security group for HW7",
-                "GroupName": "ssh-access-hw6",
+                "GroupName": "ssh-access-hw7",
                 "SecurityGroupEgress": [{
                     "IpProtocol" : "-1",
                     "FromPort" : -1,
@@ -72,10 +71,6 @@
         },
         "KeyName": {
             "Description": "Name of an existing EC2 KeyPair to enable SSH access to the instance",
-            "Type": "String"
-        },
-        "SecurityGroupID": {
-            "Description": "Id of security group",
             "Type": "String"
         },
         "SubnetId": {
