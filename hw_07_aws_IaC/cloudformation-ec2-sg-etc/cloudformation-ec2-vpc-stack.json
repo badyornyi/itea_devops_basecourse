@@ -31,16 +31,16 @@
                 "GroupDescription": "SSH Access security group for HW7",
                 "GroupName": "ssh-access-hw7",
                 "SecurityGroupEgress": [{
-                    "IpProtocol" : "-1",
-                    "FromPort" : -1,
-                    "ToPort" : -1,
-                    "CidrIp" : "0.0.0.0/0"
+                    "IpProtocol": "-1",
+                    "FromPort": -1,
+                    "ToPort": -1,
+                    "CidrIp": "0.0.0.0/0"
                 }],
                 "SecurityGroupIngress": [{
-                    "IpProtocol" : "tcp",
-                    "FromPort" : 22,
-                    "ToPort" : 22,
-                    "CidrIp" : "0.0.0.0/0"
+                    "IpProtocol": "tcp",
+                    "FromPort": 22,
+                    "ToPort": 22,
+                    "CidrIp": "0.0.0.0/0"
                 }],
                 "VpcId": {
                     "Ref": "VpcId"
@@ -51,7 +51,7 @@
             "Type": "AWS::IAM::Role",
             "Properties": {
                 "AssumeRolePolicyDocument": {
-                    "Version" : "2012-10-17",
+                    "Version": "2012-10-17",
                     "Statement": [ {
                         "Effect": "Allow",
                         "Principal": {
@@ -63,7 +63,7 @@
                 "Description": "AWS role for EC2 instances to access to S3 buckets with read-only permissions (HW7)",
                 "Path": "/",
                 "Policies": [{
-                    "PolicyDocument" : {
+                    "PolicyDocument": {
                         "Version": "2012-10-17",
                         "Statement": [
                             {
@@ -123,6 +123,14 @@
                 "Roles": [ {
                     "Ref": "S3Role"
                 } ]
+            }
+        },
+        "VPC": {
+            "Type": "AWS::EC2::VPC",
+            "Properties": {
+                "CidrBlock": "10.0.0.0/16",
+                "EnableDnsHostnames": "true",
+                "EnableDnsSupport": "true"
             }
         }
     },

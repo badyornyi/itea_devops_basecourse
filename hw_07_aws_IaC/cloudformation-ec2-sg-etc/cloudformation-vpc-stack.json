@@ -1,0 +1,63 @@
+{
+    "Description": "AWS CloudFormation Template for VPC creation (with subnets, igs, nats, etc)",
+
+    "Resources": {
+        "Ec2InstanceVpc": {
+            "Type": "AWS::EC2::VPC",
+            "Properties": {
+                "CidrBlock": "10.0.0.0/16",
+                "EnableDnsHostnames": "true",
+                "EnableDnsSupport": "true",
+                "Tags": [
+                    { "Key": "Name", "Value": "itea-vps-hw7-cf" }
+                ]
+            }
+        },
+        "NetworkAcl": {
+            "Type": "AWS::EC2::NetworkAcl",
+            "Properties": {
+                "VpcId": { "Ref": "Ec2InstanceVpc" },
+                "Tags": [
+                    { "Key": "Name", "Value": "itea-acl-hw7-cf" }
+                ]
+            }
+        },
+        "RouteTable": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+                "VpcId": { "Ref": "Ec2InstanceVpc" },
+                "Tags": [
+                    { "Key": "Name", "Value": "itea-rt-hw7-cf" }
+                ]
+            }
+        },
+
+        "PublicSubnetA": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "AvailabilityZone": { "Fn::Select": [ 0, { "Fn::GetAZs": "" } ] },
+                "CidrBlock": "10.0.0.0/24",
+                "MapPublicIpOnLaunch": "true",
+                "VpcId": { "Ref": "Ec2InstanceVpc"}
+            }
+        },
+        "PrivateSubnetB": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "AvailabilityZone": { "Fn::Select": [ 1, { "Fn::GetAZs": "" } ] },
+                "CidrBlock": "10.0.0.1/24",
+                "MapPublicIpOnLaunch": "false",
+                "VpcId": { "Ref": "Ec2InstanceVpc"}
+            }
+        },
+        "PrivateSubnetC": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "AvailabilityZone": { "Fn::Select": [ 2, { "Fn::GetAZs": "" } ] },
+                "CidrBlock": "10.0.0.2/24",
+                "MapPublicIpOnLaunch": "false",
+                "VpcId": { "Ref": "Ec2InstanceVpc"}
+            }
+        }
+    }
+}

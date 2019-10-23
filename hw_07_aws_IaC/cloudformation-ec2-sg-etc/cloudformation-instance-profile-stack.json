@@ -6,7 +6,7 @@
             "Type": "AWS::IAM::Role",
             "Properties": {
                 "AssumeRolePolicyDocument": {
-                    "Version" : "2012-10-17",
+                    "Version": "2012-10-17",
                     "Statement": [ {
                         "Effect": "Allow",
                         "Principal": {
@@ -18,7 +18,7 @@
                 "Description": "AWS role for EC2 instances to access to S3 buckets with read-only permissions (HW7)",
                 "Path": "/",
                 "Policies": [{
-                    "PolicyDocument" : {
+                    "PolicyDocument": {
                         "Version": "2012-10-17",
                         "Statement": [
                             {
