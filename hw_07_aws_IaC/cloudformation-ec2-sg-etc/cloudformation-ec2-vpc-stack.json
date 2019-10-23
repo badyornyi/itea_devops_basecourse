@@ -6,7 +6,8 @@
             "Type": "AWS::EC2::Instance",
             "Properties": {
                 "IamInstanceProfile": {
-                    "Ref": "IamInstanceProfile"
+                    "Ref": "IamInstanceProfile",
+                    "Fn::GetAtt": [ "EC2S3InstanceProfile", "Arn" ]
                 },
                 "ImageId": {
                     "Fn::FindInMap": [ "RegionMap", { "Ref": "AWS::Region" }, "AMI" ]
@@ -47,57 +48,82 @@
                 }
             }
         },
-        "S3 Policy": {
-            "Type": "AWS::IAM::Policy",
+        "S3Role": {
+            "Type": "AWS::IAM::Role",
             "Properties": {
-                "PolicyDocument" : {
-                    "Version": "2012-10-17",
-                    "Statement": [
-                        {
-                            "Sid": "VisualEditor0",
-                            "Effect": "Allow",
-                            "Action": [
-                                "s3:ListBucketByTags",
-                                "s3:GetLifecycleConfiguration",
-                                "s3:GetBucketTagging",
-                                "s3:GetInventoryConfiguration",
-                                "s3:GetObjectVersionTagging",
-                                "s3:ListBucketVersions",
-                                "s3:GetBucketLogging",
-                                "s3:GetAccelerateConfiguration",
-                                "s3:GetBucketPolicy",
-                                "s3:GetObjectVersionTorrent",
-                                "s3:GetObjectAcl",
-                                "s3:GetEncryptionConfiguration",
-                                "s3:GetBucketRequestPayment",
-                                "s3:GetObjectVersionAcl",
-                                "s3:GetObjectTagging",
-                                "s3:GetMetricsConfiguration",
-                                "s3:GetBucketPublicAccessBlock",
-                                "s3:GetBucketPolicyStatus",
-                                "s3:ListBucketMultipartUploads",
-                                "s3:GetBucketWebsite",
-                                "s3:ListJobs",
-                                "s3:GetBucketVersioning",
-                                "s3:GetBucketAcl",
-                                "s3:GetBucketNotification",
-                                "s3:GetReplicationConfiguration",
-                                "s3:ListMultipartUploadParts",
-                                "s3:GetObject",
-                                "s3:GetObjectTorrent",
-                                "s3:GetAccountPublicAccessBlock",
-                                "s3:DescribeJob",
-                                "s3:GetBucketCORS",
-                                "s3:GetAnalyticsConfiguration",
-                                "s3:GetObjectVersionForReplication",
-                                "s3:GetBucketLocation",
-                                "s3:GetObjectVersion"
-                            ],
-                            "Resource": "*"
-                        }
-                    ]
+                "AssumeRolePolicyDocument": {
+                    "Version" : "2012-10-17",
+                    "Statement": [ {
+                        "Effect": "Allow",
+                        "Principal": {
+                            "Service": [ "ec2.amazonaws.com" ]
+                        },
+                        "Action": [ "sts:AssumeRole" ]
+                    } ]
                 },
-                "PolicyName" : "s3-read-only-policy-hw7"
+                "Description": "AWS role for EC2 instances to access to S3 buckets with read-only permissions (HW7)",
+                "Path": "/",
+                "Policies": [{
+                    "PolicyDocument" : {
+                        "Version": "2012-10-17",
+                        "Statement": [
+                            {
+                                "Sid": "VisualEditor0",
+                                "Effect": "Allow",
+                                "Action": [
+                                    "s3:ListBucketByTags",
+                                    "s3:GetLifecycleConfiguration",
+                                    "s3:GetBucketTagging",
+                                    "s3:GetInventoryConfiguration",
+                                    "s3:GetObjectVersionTagging",
+                                    "s3:ListBucketVersions",
+                                    "s3:GetBucketLogging",
+                                    "s3:GetAccelerateConfiguration",
+                                    "s3:GetBucketPolicy",
+                                    "s3:GetObjectVersionTorrent",
+                                    "s3:GetObjectAcl",
+                                    "s3:GetEncryptionConfiguration",
+                                    "s3:GetBucketRequestPayment",
+                                    "s3:GetObjectVersionAcl",
+                                    "s3:GetObjectTagging",
+                                    "s3:GetMetricsConfiguration",
+                                    "s3:GetBucketPublicAccessBlock",
+                                    "s3:GetBucketPolicyStatus",
+                                    "s3:ListBucketMultipartUploads",
+                                    "s3:GetBucketWebsite",
+                                    "s3:ListJobs",
+                                    "s3:GetBucketVersioning",
+                                    "s3:GetBucketAcl",
+                                    "s3:GetBucketNotification",
+                                    "s3:GetReplicationConfiguration",
+                                    "s3:ListMultipartUploadParts",
+                                    "s3:GetObject",
+                                    "s3:GetObjectTorrent",
+                                    "s3:GetAccountPublicAccessBlock",
+                                    "s3:DescribeJob",
+                                    "s3:GetBucketCORS",
+                                    "s3:GetAnalyticsConfiguration",
+                                    "s3:GetObjectVersionForReplication",
+                                    "s3:GetBucketLocation",
+                                    "s3:GetObjectVersion"
+                                ],
+                                "Resource": "*"
+                            }
+                        ]
+                    },
+                    "PolicyName": "s3-read-only-policy-hw7"
+                }],
+                "RoleName": "s3-read-only-policy-hw7-role"
+            }
+        },
+        "EC2S3InstanceProfile": {
+            "Type": "AWS::IAM::InstanceProfile",
+            "Properties": {
+                "InstanceProfileName": "s3-read-only-policy-hw7-role-instance-profile",
+                "Path": "/",
+                "Roles": [ {
+                    "Ref": "S3Role"
+                } ]
             }
         }
     },
