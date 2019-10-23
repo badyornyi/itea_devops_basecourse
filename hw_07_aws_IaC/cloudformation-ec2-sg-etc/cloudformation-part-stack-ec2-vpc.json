@@ -1,0 +1,175 @@
+{
+    "Description": "AWS CloudFormation Template for study project: EC2 instance with SG and IAM role for access to S3 bucket and located in created VPC",
+
+    "Resources": {
+        "Ec2Instance": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "IamInstanceProfile": {
+                    "Ref": "EC2S3InstanceProfile"
+                },
+                "ImageId": {
+                    "Fn::FindInMap": [ "RegionMap", { "Ref": "AWS::Region" }, "AMI" ]
+                },
+                "InstanceType": {
+                    "Ref": "InstanceType"
+                },
+                "KeyName": {
+                    "Ref": "KeyName"
+                },
+                "SecurityGroupIds": [
+                    { "Fn::GetAtt": [ "SecurityGroup", "GroupId" ] }
+                ],
+                "SubnetId": {
+                    "Ref": "SubnetId"
+                }
+            }
+        },
+        "SecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "SSH Access security group for HW7",
+                "GroupName": "ssh-access-hw7",
+                "SecurityGroupEgress": [{
+                    "IpProtocol": "-1",
+                    "FromPort": -1,
+                    "ToPort": -1,
+                    "CidrIp": "0.0.0.0/0"
+                }],
+                "SecurityGroupIngress": [{
+                    "IpProtocol": "tcp",
+                    "FromPort": 22,
+                    "ToPort": 22,
+                    "CidrIp": "0.0.0.0/0"
+                }],
+                "VpcId": {
+                    "Ref": "Ec2InstanceVpc"
+                }
+            }
+        },
+        "S3Role": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [ {
+                        "Effect": "Allow",
+                        "Principal": {
+                            "Service": [ "ec2.amazonaws.com" ]
+                        },
+                        "Action": [ "sts:AssumeRole" ]
+                    } ]
+                },
+                "Description": "AWS role for EC2 instances to access to S3 buckets with read-only permissions (HW7)",
+                "Path": "/",
+                "Policies": [{
+                    "PolicyDocument": {
+                        "Version": "2012-10-17",
+                        "Statement": [
+                            {
+                                "Sid": "VisualEditor0",
+                                "Effect": "Allow",
+                                "Action": [
+                                    "s3:ListBucketByTags",
+                                    "s3:GetLifecycleConfiguration",
+                                    "s3:GetBucketTagging",
+                                    "s3:GetInventoryConfiguration",
+                                    "s3:GetObjectVersionTagging",
+                                    "s3:ListBucketVersions",
+                                    "s3:GetBucketLogging",
+                                    "s3:GetAccelerateConfiguration",
+                                    "s3:GetBucketPolicy",
+                                    "s3:GetObjectVersionTorrent",
+                                    "s3:GetObjectAcl",
+                                    "s3:GetEncryptionConfiguration",
+                                    "s3:GetBucketRequestPayment",
+                                    "s3:GetObjectVersionAcl",
+                                    "s3:GetObjectTagging",
+                                    "s3:GetMetricsConfiguration",
+                                    "s3:GetBucketPublicAccessBlock",
+                                    "s3:GetBucketPolicyStatus",
+                                    "s3:ListBucketMultipartUploads",
+                                    "s3:GetBucketWebsite",
+                                    "s3:ListJobs",
+                                    "s3:GetBucketVersioning",
+                                    "s3:GetBucketAcl",
+                                    "s3:GetBucketNotification",
+                                    "s3:GetReplicationConfiguration",
+                                    "s3:ListMultipartUploadParts",
+                                    "s3:GetObject",
+                                    "s3:GetObjectTorrent",
+                                    "s3:GetAccountPublicAccessBlock",
+                                    "s3:DescribeJob",
+                                    "s3:GetBucketCORS",
+                                    "s3:GetAnalyticsConfiguration",
+                                    "s3:GetObjectVersionForReplication",
+                                    "s3:GetBucketLocation",
+                                    "s3:GetObjectVersion"
+                                ],
+                                "Resource": "*"
+                            }
+                        ]
+                    },
+                    "PolicyName": "s3-read-only-policy-hw7"
+                }],
+                "RoleName": "s3-read-only-policy-hw7-role"
+            }
+        },
+        "EC2S3InstanceProfile": {
+            "Type": "AWS::IAM::InstanceProfile",
+            "Properties": {
+                "InstanceProfileName": "s3-read-only-policy-hw7-role",
+                "Path": "/",
+                "Roles": [ {
+                    "Ref": "S3Role"
+                } ]
+            }
+        },
+        "VPC": {
+            "Type": "AWS::EC2::VPC",
+            "Properties": {
+                "CidrBlock": "10.0.0.0/16",
+                "EnableDnsHostnames": "true",
+                "EnableDnsSupport": "true"
+            }
+        }
+    },
+
+    "Parameters": {
+        "InstanceType": {
+            "Description": "WebServer EC2 instance type (t2.micro only, for free tier usage)",
+            "Type": "String",
+            "Default": "t2.micro",
+            "AllowedValues": [
+                "t2.micro"
+            ],
+            "ConstraintDescription": "must be a valid EC2 instance type."
+        },
+        "KeyName": {
+            "Description": "Name of an existing EC2 KeyPair to enable SSH access to the instance",
+            "Type": "String"
+        },
+        "SubnetId": {
+            "Description": "Id of the VPC subnet",
+            "Type": "String"
+        },
+        "VpcId": {
+            "Description": "Id of the VPC",
+            "Type": "String"
+        }
+    },
+
+    "Mappings": {
+        "RegionMap": {
+            "eu-central-1": {
+                "AMI": "ami-010fae13a16763bb4"
+            },
+            "eu-west-1": {
+                "AMI": "ami-028188d9b49b32a80"
+            },
+            "us-east-1": {
+                "AMI": "ami-00eb20669e0990cb4"
+            }
+        }
+    }
+}
