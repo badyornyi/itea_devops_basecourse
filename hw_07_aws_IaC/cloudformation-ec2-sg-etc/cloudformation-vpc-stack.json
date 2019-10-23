@@ -76,12 +76,13 @@
         "NatGateway": {
             "Type": "AWS::EC2::NatGateway",
             "Properties": {
-                "AllocationId": "",
-                "SubnetId": "",
+                "AllocationId": { "Fn::GetAtt" : ["ElasticIpAllocation", "AllocationId"] },
+                "SubnetId": { "Ref": "PublicSubnetA" },
                 "Tags": [
-                    {  }
+                    { "Key": "Name", "Value": "itea-nat-private-hw7-cf" }
                 ]
-            }
+            },
+            "DependsOn" : "ElasticIpAllocation"
         },
 
         "PublicRouteTable": {
