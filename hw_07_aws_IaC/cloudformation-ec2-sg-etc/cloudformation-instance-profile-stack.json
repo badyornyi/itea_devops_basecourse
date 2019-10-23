@@ -1,52 +1,7 @@
 {
-    "Description": "AWS CloudFormation Template for study project: EC2 instance with SG and IAM role for access to S3 bucket and located in created VPC",
+    "Description": "AWS CloudFormation Template for IAM Instance Profile creation",
 
     "Resources": {
-        "Ec2Instance": {
-            "Type": "AWS::EC2::Instance",
-            "Properties": {
-                "IamInstanceProfile": {
-                    "Ref": "EC2S3InstanceProfile"
-                },
-                "ImageId": {
-                    "Fn::FindInMap": [ "RegionMap", { "Ref": "AWS::Region" }, "AMI" ]
-                },
-                "InstanceType": {
-                    "Ref": "InstanceType"
-                },
-                "KeyName": {
-                    "Ref": "KeyName"
-                },
-                "SecurityGroupIds": [
-                    { "Fn::GetAtt": [ "SecurityGroup", "GroupId" ] }
-                ],
-                "SubnetId": {
-                    "Ref": "SubnetId"
-                }
-            }
-        },
-        "SecurityGroup": {
-            "Type": "AWS::EC2::SecurityGroup",
-            "Properties": {
-                "GroupDescription": "SSH Access security group for HW7",
-                "GroupName": "ssh-access-hw7",
-                "SecurityGroupEgress": [{
-                    "IpProtocol" : "-1",
-                    "FromPort" : -1,
-                    "ToPort" : -1,
-                    "CidrIp" : "0.0.0.0/0"
-                }],
-                "SecurityGroupIngress": [{
-                    "IpProtocol" : "tcp",
-                    "FromPort" : 22,
-                    "ToPort" : 22,
-                    "CidrIp" : "0.0.0.0/0"
-                }],
-                "VpcId": {
-                    "Ref": "VpcId"
-                }
-            }
-        },
         "S3Role": {
             "Type": "AWS::IAM::Role",
             "Properties": {
@@ -123,44 +78,6 @@
                 "Roles": [ {
                     "Ref": "S3Role"
                 } ]
-            }
-        }
-    },
-
-    "Parameters": {
-        "InstanceType": {
-            "Description": "WebServer EC2 instance type (t2.micro only, for free tier usage)",
-            "Type": "String",
-            "Default": "t2.micro",
-            "AllowedValues": [
-                "t2.micro"
-            ],
-            "ConstraintDescription": "must be a valid EC2 instance type."
-        },
-        "KeyName": {
-            "Description": "Name of an existing EC2 KeyPair to enable SSH access to the instance",
-            "Type": "String"
-        },
-        "SubnetId": {
-            "Description": "Id of the VPC subnet",
-            "Type": "String"
-        },
-        "VpcId": {
-            "Description": "Id of the VPC",
-            "Type": "String"
-        }
-    },
-
-    "Mappings": {
-        "RegionMap": {
-            "eu-central-1": {
-                "AMI": "ami-010fae13a16763bb4"
-            },
-            "eu-west-1": {
-                "AMI": "ami-028188d9b49b32a80"
-            },
-            "us-east-1": {
-                "AMI": "ami-00eb20669e0990cb4"
             }
         }
     }
