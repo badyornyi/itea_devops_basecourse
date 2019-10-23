@@ -13,16 +13,146 @@
                 ]
             }
         },
-        "NetworkAcl": {
+
+        "PublicSubnetA": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "AvailabilityZone": { "Fn::Select": [ 0, { "Fn::GetAZs": "" } ] },
+                "CidrBlock": "10.0.0.0/24",
+                "MapPublicIpOnLaunch": "true",
+                "VpcId": { "Ref": "Ec2InstanceVpc" },
+                "Tags": [
+                    { "Key": "Name", "Value": "itea-subnet-public-a-hw7-cf" }
+                ]
+            }
+        },
+        "PrivateSubnetB": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "AvailabilityZone": { "Fn::Select": [ 1, { "Fn::GetAZs": "" } ] },
+                "CidrBlock": "10.0.1.0/24",
+                "MapPublicIpOnLaunch": "false",
+                "VpcId": { "Ref": "Ec2InstanceVpc" },
+                "Tags": [
+                    { "Key": "Name", "Value": "itea-subnet-private-b-hw7-cf" }
+                ]
+            }
+        },
+        "PrivateSubnetC": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "AvailabilityZone": { "Fn::Select": [ 2, { "Fn::GetAZs": "" } ] },
+                "CidrBlock": "10.0.2.0/24",
+                "MapPublicIpOnLaunch": "false",
+                "VpcId": { "Ref": "Ec2InstanceVpc" },
+                "Tags": [
+                    { "Key": "Name", "Value": "itea-subnet-private-c-hw7-cf" }
+                ]
+            }
+        },
+
+        "InternetGateway": {
+            "Type": "AWS::EC2::InternetGateway",
+            "Properties": {
+                "Tags": [
+                    { "Key": "Name", "Value": "itea-igv-public-hw7-cf" }
+                ]
+            }
+        },
+        "AttachInternetGateway": {
+            "Type": "AWS::EC2::VPCGatewayAttachment",
+            "Properties": {
+                "InternetGatewayId": { "Ref": "InternetGateway" },
+                "VpcId": { "Ref": "Ec2InstanceVpc" }
+            }
+        },
+
+        "ElasticIpAllocation": {
+            "Type": "AWS::EC2::EIP",
+            "Properties": {
+                "Domain": "vpc"
+            }
+        },
+        "NatGateway": {
+            "Type": "AWS::EC2::NatGateway",
+            "Properties": {
+                "AllocationId": "",
+                "SubnetId": "",
+                "Tags": [
+                    {  }
+                ]
+            }
+        },
+
+        "PublicRouteTable": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+                "VpcId": { "Ref": "Ec2InstanceVpc" },
+                "Tags": [
+                    { "Key": "Name", "Value": "itea-rt-public-hw7-cf" }
+                ]
+            }
+        },
+        "PublicSubnetARouteTableAssociation": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "RouteTableId": { "Ref": "PublicRouteTable" },
+                "SubnetId": { "Ref": "PublicSubnetA" }
+            }
+        },
+        "RouteForPublicSubnetRouteTable": {
+            "Type": "AWS::EC2::Route",
+            "Properties": {
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "GatewayId": { "Ref": "InternetGateway" },
+                "RouteTableId": { "Ref": "PublicRouteTable" }
+            }
+        },
+
+        "PrivateRouteTable": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+                "VpcId": { "Ref": "Ec2InstanceVpc" },
+                "Tags": [
+                    { "Key": "Name", "Value": "itea-rt-private-hw7-cf" }
+                ]
+            }
+        },
+        "PrivateSubnetBRouteTableAssociation": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "RouteTableId": { "Ref": "PrivateRouteTable" },
+                "SubnetId": { "Ref": "PrivateSubnetB" }
+            }
+        },
+        "PrivateSubnetCRouteTableAssociation": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "RouteTableId": { "Ref": "PrivateRouteTable" },
+                "SubnetId": { "Ref": "PrivateSubnetC" }
+            }
+        },
+        "RouteForPrivateSubnetRouteTable": {
+            "Type": "AWS::EC2::Route",
+            "Properties": {
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "GatewayId": { "Ref": "NatGateway" },
+                "RouteTableId": { "Ref": "PrivateRouteTable" }
+            }
+        },
+
+
+        "MainNetworkAcl": {
             "Type": "AWS::EC2::NetworkAcl",
             "Properties": {
                 "VpcId": { "Ref": "Ec2InstanceVpc" },
                 "Tags": [
-                    { "Key": "Name", "Value": "itea-acl-hw7-cf" }
+                    { "Key": "Name", "Value": "itea-main-acl-vpc-hw7-cf" }
                 ]
             }
         },
-        "RouteTable": {
+
+        "RouteTableForVpc": {
             "Type": "AWS::EC2::RouteTable",
             "Properties": {
                 "VpcId": { "Ref": "Ec2InstanceVpc" },
@@ -32,31 +162,50 @@
             }
         },
 
-        "PublicSubnetA": {
-            "Type": "AWS::EC2::Subnet",
+
+        "SubnetANetworkAclAssociation": {
+            "Type": "AWS::EC2::SubnetNetworkAclAssociation",
             "Properties": {
-                "AvailabilityZone": { "Fn::Select": [ 0, { "Fn::GetAZs": "" } ] },
-                "CidrBlock": "10.0.0.0/24",
-                "MapPublicIpOnLaunch": "true",
-                "VpcId": { "Ref": "Ec2InstanceVpc"}
+                "NetworkAclId": { "Ref": "MainNetworkAcl" },
+                "SubnetId": { "Ref": "PublicSubnetA" }
             }
         },
-        "PrivateSubnetB": {
-            "Type": "AWS::EC2::Subnet",
+        "SubnetBNetworkAclAssociation": {
+            "Type": "AWS::EC2::SubnetNetworkAclAssociation",
             "Properties": {
-                "AvailabilityZone": { "Fn::Select": [ 1, { "Fn::GetAZs": "" } ] },
-                "CidrBlock": "10.0.0.1/24",
-                "MapPublicIpOnLaunch": "false",
-                "VpcId": { "Ref": "Ec2InstanceVpc"}
+                "NetworkAclId": { "Ref": "MainNetworkAcl" },
+                "SubnetId": { "Ref": "PrivateSubnetB" }
             }
         },
-        "PrivateSubnetC": {
-            "Type": "AWS::EC2::Subnet",
+        "SubnetCNetworkAclAssociation": {
+            "Type": "AWS::EC2::SubnetNetworkAclAssociation",
             "Properties": {
-                "AvailabilityZone": { "Fn::Select": [ 2, { "Fn::GetAZs": "" } ] },
-                "CidrBlock": "10.0.0.2/24",
-                "MapPublicIpOnLaunch": "false",
-                "VpcId": { "Ref": "Ec2InstanceVpc"}
+                "NetworkAclId": { "Ref": "MainNetworkAcl" },
+                "SubnetId": { "Ref": "PrivateSubnetC" }
+            }
+        },
+
+
+        "SecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "SSH Access security group for HW7",
+                "GroupName": "ssh-access-hw7",
+                "SecurityGroupEgress": [{
+                    "IpProtocol": "-1",
+                    "FromPort": -1,
+                    "ToPort": -1,
+                    "CidrIp": "0.0.0.0/0"
+                }],
+                "SecurityGroupIngress": [{
+                    "IpProtocol": "tcp",
+                    "FromPort": 22,
+                    "ToPort": 22,
+                    "CidrIp": "0.0.0.0/0"
+                }],
+                "VpcId": {
+                    "Ref": "Ec2InstanceVpc"
+                }
             }
         }
     }

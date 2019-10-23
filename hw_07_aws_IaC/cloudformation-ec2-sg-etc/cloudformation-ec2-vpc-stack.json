@@ -43,7 +43,7 @@
                     "CidrIp": "0.0.0.0/0"
                 }],
                 "VpcId": {
-                    "Ref": "VpcId"
+                    "Ref": "Ec2InstanceVpc"
                 }
             }
         },
