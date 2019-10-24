@@ -1,5 +1,5 @@
 {
-    "Description": "AWS CloudFormation Template for study project: EC2 instance with SG and IAM role for access to S3 bucket and located in created VPC",
+    "Description": "AWS CloudFormation Template for EC2 instance with SG and IAM role for access to S3 bucket and located in created simple VPC",
 
     "Resources": {
         "Ec2Instance": {
