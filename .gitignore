@@ -1,0 +1,4 @@
+.idea/
+/hw_07_aws_IaC/cloudformation-ec2-sg-etc/ec2.json
+/hw_07_aws_IaC/cloudformation-ec2-sg-etc/ec2.py
+/hw_07_aws_IaC/cloudformation-ec2-sg-etc/vpc.json
