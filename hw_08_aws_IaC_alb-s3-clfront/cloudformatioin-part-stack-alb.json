@@ -1,0 +1,78 @@
+{
+    "Description": "AWS CloudFormation Template for Application Load Balancer (ALB) creation",
+
+    "Resources": {
+        "ALB": {
+            "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+            "Properties": {
+                "Name": "itea-alb-ext-stack",
+                "IpAddressType": "ipv4",
+                "Scheme": "internet-facing",
+                "SecurityGroups": [{
+                    "Fn::GetAtt": [ "SecurityGroupALB", "GroupId" ]
+                }],
+                "Subnets": [
+                    "subnet-961a52f0",
+                    "subnet-a9aef6e1",
+                    "subnet-f554deaf"
+                ],
+                "Type": "application"
+            }
+        },
+        "TargetGroupALB":{
+            "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+            "Properties": {
+                "Name": "test-stub-tg-stack",
+                "Port": 80,
+                "Protocol": "HTTP",
+                "Targets": [],
+                "TargetType": "instance",
+                "VpcId": "vpc-e7263981",
+
+                "HealthCheckIntervalSeconds": 30,
+                "HealthCheckPath": "/",
+                "HealthCheckPort": "traffic-port",
+                "HealthCheckProtocol": "HTTP",
+                "HealthCheckTimeoutSeconds": 5,
+                "HealthyThresholdCount": 5,
+                "UnhealthyThresholdCount": 2
+            }
+        },
+        "ListenerALB": {
+            "Type": "AWS::ElasticLoadBalancingV2::Listener",
+            "Properties": {
+                "LoadBalancerArn": { "Ref": "ALB" },
+                "Port": 80,
+                "Protocol": "HTTP",
+                "DefaultActions": [{
+                    "FixedResponseConfig": {
+                        "ContentType" : "text/plain",
+                        "MessageBody" : "Hi there!",
+                        "StatusCode" : 200
+                    },
+                    "Type": "fixed-response"
+                }]
+            }
+        },
+        "SecurityGroupALB": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "itea-alb-ext-sg-stack description",
+                "GroupName": "itea-alb-ext-sg-stack",
+                "SecurityGroupEgress": [{
+                    "IpProtocol": "-1",
+                    "FromPort": -1,
+                    "ToPort": -1,
+                    "CidrIp": "0.0.0.0/0"
+                }],
+                "SecurityGroupIngress": [{
+                    "IpProtocol": "tcp",
+                    "FromPort": 80,
+                    "ToPort": 80,
+                    "CidrIp": "0.0.0.0/0"
+                }],
+                "VpcId": "vpc-e7263981"
+            }
+        }
+    }
+}
