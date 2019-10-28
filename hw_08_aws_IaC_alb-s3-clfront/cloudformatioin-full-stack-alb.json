@@ -23,6 +23,9 @@
                 "SubnetId": {
                     "Ref": "PublicSubnetA"
                 },
+                "Tags": [
+                    { "Key": "Name", "Value": "itea-ec2-instance-hw8-cf" }
+                ],
                 "UserData"       : { "Fn::Base64" : { "Fn::Join" : ["", [
                      "#!/bin/bash -xe\n",
                      "sudo yum install nginx -y\n",
