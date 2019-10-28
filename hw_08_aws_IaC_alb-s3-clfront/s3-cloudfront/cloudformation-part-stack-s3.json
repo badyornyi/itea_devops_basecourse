@@ -5,8 +5,7 @@
         "S3Bucket": {
             "Type": "AWS::S3::Bucket",
             "Properties": {
-                "AccessControl" : "PublicRead",
-                "BucketName": "itea-s3-hw8-cf-ob-1",
+                "BucketName": "itea-s3-hw8-cf-ob-2",
                 "PublicAccessBlockConfiguration": {
                     "BlockPublicAcls": "false",
                     "BlockPublicPolicy": "false",
