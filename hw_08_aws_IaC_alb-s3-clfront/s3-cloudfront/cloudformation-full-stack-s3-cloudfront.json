@@ -1,0 +1,61 @@
+{
+    "Description": "AWS CloudFormation Template for S3 bucket with CloudFront creation",
+
+    "Resources": {
+        "S3Bucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+                "BucketName": "itea-s3-hw8-cf-ob",
+                "PublicAccessBlockConfiguration": {
+                    "BlockPublicAcls": "false",
+                    "BlockPublicPolicy": "false",
+                    "IgnorePublicAcls": "false",
+                    "RestrictPublicBuckets": "false"
+                },
+                "VersioningConfiguration": { "Status": "Enabled" },
+                "WebsiteConfiguration": {
+                    "IndexDocument": "index.html"
+                }
+            }
+        },
+        "CloudFrontDistribution": {
+            "Type": "AWS::CloudFront::Distribution",
+            "Properties": {
+                "DistributionConfig": {
+                    "DefaultCacheBehavior": {
+                        "AllowedMethods": [ "GET", "HEAD" ],
+                        "CachedMethods": [ "GET", "HEAD" ],
+                        "DefaultTTL": 86400,
+                        "MinTTL": 0,
+                        "MaxTTL": 31536000,
+                        "ForwardedValues": {
+                            "QueryString": "false"
+                        },
+                        "TargetOriginId": { "Ref": "S3Bucket" },
+                        "ViewerProtocolPolicy": "redirect-to-https"
+                    },
+                    "Comment": "itea-clfront-hw8-cf description",
+                    "DefaultRootObject": "index.html",
+                    "Enabled": "true",
+                    "HttpVersion": "http2",
+                    "Origins": [{
+                        "DomainName": { "Fn::GetAtt": [ "S3Bucket", "DomainName" ] },
+                        "Id": { "Ref": "S3Bucket" },
+                        "S3OriginConfig": {}
+                    }]
+                }
+            }
+        }
+    },
+
+    "Outputs": {
+        "WebsiteURL": {
+           "Value": { "Fn::GetAtt": [ "S3Bucket", "WebsiteURL" ] },
+           "Description": "URL for website hosted on S3"
+        },
+        "CdnDomainName": {
+           "Value": { "Fn::GetAtt": [ "CloudFrontDistribution", "DomainName" ] },
+           "Description": "Domain Name distributed by CloudFront CDN"
+        }
+    }
+}

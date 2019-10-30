@@ -1,0 +1,41 @@
+{
+    "Description": "AWS CloudFormation Template for CloudFront creation",
+
+    "Resources": {
+        "CloudFrontDistribution": {
+            "Type": "AWS::CloudFront::Distribution",
+            "Properties": {
+                "DistributionConfig": {
+                    "DefaultCacheBehavior": {
+                        "AllowedMethods": [ "GET", "HEAD" ],
+                        "CachedMethods": [ "GET", "HEAD" ],
+                        "DefaultTTL": 86400,
+                        "MinTTL": 0,
+                        "MaxTTL": 31536000,
+                        "ForwardedValues": {
+                            "QueryString": "false"
+                        },
+                        "TargetOriginId": { "Ref": "S3Bucket" },
+                        "ViewerProtocolPolicy": "redirect-to-https"
+                    },
+                    "Comment": "itea-clfront-hw8-cf description",
+                    "DefaultRootObject": "index.html",
+                    "Enabled": "true",
+                    "HttpVersion": "http2",
+                    "Origins": [{
+                        "DomainName": { "Fn::GetAtt": [ "S3Bucket", "DomainName" ] },
+                        "Id": { "Ref": "S3Bucket" },
+                        "S3OriginConfig": {}
+                    }]
+                }
+            }
+        }
+    },
+
+    "Outputs": {
+        "CdnDomainName": {
+           "Value": { "Fn::GetAtt": [ "CloudFrontDistribution", "DomainName" ] },
+           "Description": "Domain Name distributed by CloudFront CDN"
+        }
+    }
+}
