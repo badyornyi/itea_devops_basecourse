@@ -1,0 +1,462 @@
+{
+    "Description": "AWS CloudFormation Template for Final project: Launch Configuration, AutoScaling Group, ALB",
+
+    "Resources": {
+        "LaunchConfiguration": {
+            "Type": "AWS::AutoScaling::LaunchConfiguration",
+            "Properties": {
+                "LaunchConfigurationName": "itea-launch-config-final-cf",
+                "ImageId": {
+                    "Fn::FindInMap": [ "RegionMap", { "Ref": "AWS::Region" }, "AMI" ]
+                },
+                "InstanceType": {
+                    "Ref": "InstanceType"
+                },
+                "IamInstanceProfile": {
+                    "Ref": "EC2S3InstanceProfile"
+                },
+                "InstanceMonitoring": "false",
+                "KeyName": {
+                    "Ref": "KeyName"
+                },
+                "SecurityGroups": [
+                    { "Fn::GetAtt": [ "SecurityGroup", "GroupId" ] }
+                ],
+                "UserData": { "Fn::Base64" : { "Fn::Join" : ["", [
+                     "#!/bin/bash -xe\n",
+                     "sudo yum install nginx -y\n",
+                     "sudo service nginx start"
+                ]]}}
+            }
+        },
+
+        "AutoScalingGroup": {
+            "Type": "AWS::AutoScaling::AutoScalingGroup",
+            "Properties": {
+                "AutoScalingGroupName": "itea-asg-final-cf",
+                "LaunchConfigurationName": {
+                    "Ref": "LaunchConfiguration"
+                },
+                "HealthCheckGracePeriod": 300,
+                "HealthCheckType": "EC2",
+                "DesiredCapacity": "2",
+                "MinSize": "1",
+                "MaxSize": "4",
+                "TargetGroupARNs": [{
+                    "Ref": "TargetGroupALB"
+                }],
+                "VPCZoneIdentifier": [
+                    { "Ref": "PublicSubnetA" },
+                    { "Ref": "PublicSubnetB" },
+                    { "Ref": "PublicSubnetC" }
+                ]
+            }
+        },
+
+        "AutoScalingPolicyRaise": {
+            "Type": "AWS::AutoScaling::ScalingPolicy",
+            "Properties": {
+                "AdjustmentType": "ChangeInCapacity",
+                "AutoScalingGroupName": { "Ref": "AutoScalingGroup" },
+                "PolicyType": "StepScaling",
+                "MetricAggregationType": "Average",
+                "StepAdjustments": [
+                    {
+                        "MetricIntervalLowerBound": "1",
+                        "ScalingAdjustment": "1"
+                    }
+                ]
+            }
+        },
+        "AutoScalingPolicyFall": {
+            "Type": "AWS::AutoScaling::ScalingPolicy",
+            "Properties": {
+                "AdjustmentType": "ChangeInCapacity",
+                "AutoScalingGroupName": { "Ref": "AutoScalingGroup" },
+                "PolicyType": "StepScaling",
+                "MetricAggregationType": "Average",
+                "StepAdjustments": [
+                    {
+                        "MetricIntervalLowerBound": "1",
+                        "ScalingAdjustment": "-1"
+                    }
+                ]
+            }
+        },
+        "CloudWatchAlarmRaise": {
+            "Type": "AWS::CloudWatch::Alarm",
+            "Properties": {
+                "AlarmName": "awsec2-itea-asg-final-cf-High-CPU-Utilization",
+                "MetricName": "CPUUtilization",
+                "Namespace": "AWS/EC2",
+                "Statistic": "Average",
+                "Period": "60",
+                "EvaluationPeriods": "1",
+                "Threshold": "1",
+                "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+                "AlarmActions": [{ "Ref": "AutoScalingPolicyRaise" }],
+                "Dimensions": [{
+                    "Name": "AutoScalingGroupName",
+                    "Value": { "Ref": "AutoScalingGroup" }
+                }]
+            }
+        },
+        "CloudWatchAlarmFall": {
+            "Type": "AWS::CloudWatch::Alarm",
+            "Properties": {
+                "AlarmName": "awsec2-itea-asg-final-cf-Low-CPU-Utilization",
+                "MetricName": "CPUUtilization",
+                "Namespace": "AWS/EC2",
+                "Statistic": "Average",
+                "Period": "60",
+                "EvaluationPeriods": "1",
+                "Threshold": "1",
+                "ComparisonOperator": "LessThanThreshold",
+                "AlarmActions": [{ "Ref": "AutoScalingPolicyFall" }],
+                "Dimensions": [{
+                    "Name": "AutoScalingGroupName",
+                    "Value": { "Ref": "AutoScalingGroup" }
+                }]
+            }
+        },
+
+        "SecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "SSH (custom CIDR) security group for access to EC2 instances for Final Project",
+                "GroupName": "itea-asg-sg-final-cf",
+                "SecurityGroupEgress": [{
+                    "IpProtocol": "tcp",
+                    "FromPort": 80,
+                    "ToPort": 80,
+                    "CidrIp": "0.0.0.0/0"
+                }],
+                "SecurityGroupIngress": [{
+                    "IpProtocol": "tcp",
+                    "FromPort": 22,
+                    "ToPort": 22,
+                    "CidrIp": { "Ref": "SgInboundSshCidrIp" }
+                }],
+                "VpcId": {
+                    "Ref": "Ec2InstanceVpc"
+                }
+            }
+        },
+        "S3Role": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [ {
+                        "Effect": "Allow",
+                        "Principal": {
+                            "Service": [ "ec2.amazonaws.com" ]
+                        },
+                        "Action": [ "sts:AssumeRole" ]
+                    } ]
+                },
+                "Description": "AWS role for EC2 instances to access to S3 buckets with read-only permissions",
+                "Path": "/",
+                "Policies": [{
+                    "PolicyDocument": {
+                        "Version": "2012-10-17",
+                        "Statement": [
+                            {
+                                "Sid": "VisualEditor0",
+                                "Effect": "Allow",
+                                "Action": [
+                                    "s3:ListBucketByTags",
+                                    "s3:GetLifecycleConfiguration",
+                                    "s3:GetBucketTagging",
+                                    "s3:GetInventoryConfiguration",
+                                    "s3:GetObjectVersionTagging",
+                                    "s3:ListBucketVersions",
+                                    "s3:GetBucketLogging",
+                                    "s3:GetAccelerateConfiguration",
+                                    "s3:GetBucketPolicy",
+                                    "s3:GetObjectVersionTorrent",
+                                    "s3:GetObjectAcl",
+                                    "s3:GetEncryptionConfiguration",
+                                    "s3:GetBucketRequestPayment",
+                                    "s3:GetObjectVersionAcl",
+                                    "s3:GetObjectTagging",
+                                    "s3:GetMetricsConfiguration",
+                                    "s3:GetBucketPublicAccessBlock",
+                                    "s3:GetBucketPolicyStatus",
+                                    "s3:ListBucketMultipartUploads",
+                                    "s3:GetBucketWebsite",
+                                    "s3:ListJobs",
+                                    "s3:GetBucketVersioning",
+                                    "s3:GetBucketAcl",
+                                    "s3:GetBucketNotification",
+                                    "s3:GetReplicationConfiguration",
+                                    "s3:ListMultipartUploadParts",
+                                    "s3:GetObject",
+                                    "s3:GetObjectTorrent",
+                                    "s3:GetAccountPublicAccessBlock",
+                                    "s3:DescribeJob",
+                                    "s3:GetBucketCORS",
+                                    "s3:GetAnalyticsConfiguration",
+                                    "s3:GetObjectVersionForReplication",
+                                    "s3:GetBucketLocation",
+                                    "s3:GetObjectVersion"
+                                ],
+                                "Resource": "*"
+                            }
+                        ]
+                    },
+                    "PolicyName": "s3-read-only-policy-final-cf"
+                }],
+                "RoleName": "s3-read-only-policy-final-cf-role"
+            }
+        },
+        "EC2S3InstanceProfile": {
+            "Type": "AWS::IAM::InstanceProfile",
+            "Properties": {
+                "InstanceProfileName": "s3-read-only-policy-final-cf-role",
+                "Path": "/",
+                "Roles": [ {
+                    "Ref": "S3Role"
+                } ]
+            }
+        },
+
+        "Ec2InstanceVpc": {
+            "Type": "AWS::EC2::VPC",
+            "Properties": {
+                "CidrBlock": "10.0.0.0/16",
+                "EnableDnsHostnames": "true",
+                "EnableDnsSupport": "true",
+                "Tags": [
+                    { "Key": "Name", "Value": "itea-vps-final-cf" }
+                ]
+            }
+        },
+
+        "PublicSubnetA": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "AvailabilityZone": { "Fn::Select": [ 0, { "Fn::GetAZs": "" } ] },
+                "CidrBlock": "10.0.0.0/24",
+                "MapPublicIpOnLaunch": "true",
+                "VpcId": { "Ref": "Ec2InstanceVpc" },
+                "Tags": [
+                    { "Key": "Name", "Value": "itea-subnet-public-a-final-cf" }
+                ]
+            }
+        },
+        "PublicSubnetB": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "AvailabilityZone": { "Fn::Select": [ 1, { "Fn::GetAZs": "" } ] },
+                "CidrBlock": "10.0.1.0/24",
+                "MapPublicIpOnLaunch": "true",
+                "VpcId": { "Ref": "Ec2InstanceVpc" },
+                "Tags": [
+                    { "Key": "Name", "Value": "itea-subnet-public-b-final-cf" }
+                ]
+            }
+        },
+        "PublicSubnetC": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "AvailabilityZone": { "Fn::Select": [ 2, { "Fn::GetAZs": "" } ] },
+                "CidrBlock": "10.0.2.0/24",
+                "MapPublicIpOnLaunch": "true",
+                "VpcId": { "Ref": "Ec2InstanceVpc" },
+                "Tags": [
+                    { "Key": "Name", "Value": "itea-subnet-public-c-final-cf" }
+                ]
+            }
+        },
+
+        "InternetGateway": {
+            "Type": "AWS::EC2::InternetGateway",
+            "Properties": {
+                "Tags": [
+                    { "Key": "Name", "Value": "itea-igv-public-final-cf" }
+                ]
+            }
+        },
+        "AttachInternetGateway": {
+            "Type": "AWS::EC2::VPCGatewayAttachment",
+            "Properties": {
+                "InternetGatewayId": { "Ref": "InternetGateway" },
+                "VpcId": { "Ref": "Ec2InstanceVpc" }
+            }
+        },
+
+        "PublicRouteTable": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+                "VpcId": { "Ref": "Ec2InstanceVpc" },
+                "Tags": [
+                    { "Key": "Name", "Value": "itea-rt-public-final-cf" }
+                ]
+            }
+        },
+        "PublicSubnetARouteTableAssociation": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "RouteTableId": { "Ref": "PublicRouteTable" },
+                "SubnetId": { "Ref": "PublicSubnetA" }
+            }
+        },
+        "PublicSubnetBRouteTableAssociation": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "RouteTableId": { "Ref": "PublicRouteTable" },
+                "SubnetId": { "Ref": "PublicSubnetB" }
+            }
+        },
+        "PublicSubnetCRouteTableAssociation": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "RouteTableId": { "Ref": "PublicRouteTable" },
+                "SubnetId": { "Ref": "PublicSubnetC" }
+            }
+        },
+        "RouteForPublicSubnetRouteTable": {
+            "Type": "AWS::EC2::Route",
+            "Properties": {
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "GatewayId": { "Ref": "InternetGateway" },
+                "RouteTableId": { "Ref": "PublicRouteTable" }
+            }
+        },
+
+        "ALB": {
+            "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+            "Properties": {
+                "Name": "itea-alb-ext-final-cf",
+                "IpAddressType": "ipv4",
+                "Scheme": "internet-facing",
+                "SecurityGroups": [{
+                    "Fn::GetAtt": [ "SecurityGroupALB", "GroupId" ]
+                }],
+                "Subnets": [
+                    { "Ref": "PublicSubnetA" },
+                    { "Ref": "PublicSubnetB" },
+                    { "Ref": "PublicSubnetC" }
+                ],
+                "Type": "application"
+            }
+        },
+        "TargetGroupALB":{
+            "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+            "Properties": {
+                "Name": "itea-tg-final-cf",
+                "Port": 80,
+                "Protocol": "HTTP",
+                "VpcId": { "Ref": "Ec2InstanceVpc" },
+
+                "HealthCheckIntervalSeconds": 30,
+                "HealthCheckPath": "/",
+                "HealthCheckPort": "traffic-port",
+                "HealthCheckProtocol": "HTTP",
+                "HealthCheckTimeoutSeconds": 5,
+                "HealthyThresholdCount": 5,
+                "UnhealthyThresholdCount": 2
+            }
+        },
+        "ListenerALB": {
+            "Type": "AWS::ElasticLoadBalancingV2::Listener",
+            "Properties": {
+                "LoadBalancerArn": { "Ref": "ALB" },
+                "Port": 80,
+                "Protocol": "HTTP",
+                "DefaultActions": [{
+                    "FixedResponseConfig": {
+                        "ContentType" : "text/plain",
+                        "MessageBody" : "Hi there! You've reached the default rule of Application Load Balancer listener, because your request was strange.\nUse the GET, Luke.",
+                        "StatusCode" : 200
+                    },
+                    "Type": "fixed-response"
+                }]
+            }
+        },
+        "ListenerRuleNginx": {
+            "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+            "Properties": {
+                "Actions": [{
+                    "TargetGroupArn": { "Ref": "TargetGroupALB" },
+                    "Type": "forward"
+                }],
+                "Conditions": [{
+                    "Field": "http-request-method",
+                    "HttpRequestMethodConfig": {
+                        "Values": [ "GET_OR_HEAD" ]
+                    }
+                }],
+                "ListenerArn": { "Ref": "ListenerALB" },
+                "Priority": 1
+            }
+        },
+        "SecurityGroupALB": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "SG for externall access via HTTP",
+                "GroupName": "itea-alb-ext-sg-final-cf",
+                "SecurityGroupEgress": [{
+                    "IpProtocol": "tcp",
+                    "FromPort": 80,
+                    "ToPort": 80,
+                    "CidrIp": "0.0.0.0/0"
+                }],
+                "SecurityGroupIngress": [{
+                    "IpProtocol": "tcp",
+                    "FromPort": 80,
+                    "ToPort": 80,
+                    "CidrIp": "0.0.0.0/0"
+                }],
+                "VpcId": { "Ref": "Ec2InstanceVpc" }
+            }
+        },
+        "VpcSecurityGroupIngressUpdate": {
+            "Type": "AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "Description": "HTTP for access from ALB",
+                "GroupId": { "Ref": "SecurityGroup" },
+                "IpProtocol": "tcp",
+                "FromPort": 80,
+                "ToPort": 80,
+                "SourceSecurityGroupId": { "Ref": "SecurityGroupALB" }
+            },
+            "DependsOn" : "SecurityGroupALB"
+        }
+    },
+
+    "Parameters": {
+        "InstanceType": {
+            "Description": "WebServer EC2 instance type (t2.micro only, for free tier usage)",
+            "Type": "String",
+            "Default": "t2.micro",
+            "AllowedValues": [
+                "t2.micro"
+            ],
+            "ConstraintDescription": "must be a valid EC2 instance type."
+        },
+        "KeyName": {
+            "Description": "Name of an existing EC2 KeyPair to enable SSH access to the instance",
+            "Type": "String"
+        },
+        "SgInboundSshCidrIp": {
+            "Description": "CIDR for EC2 Instances SSH SG Ingress/Egress rules, eg 0.0.0.0/0",
+            "Type": "String"
+        }
+    },
+
+    "Mappings": {
+        "RegionMap": {
+            "eu-central-1": {
+                "AMI": "ami-010fae13a16763bb4"
+            },
+            "eu-west-1": {
+                "AMI": "ami-028188d9b49b32a80"
+            },
+            "us-east-1": {
+                "AMI": "ami-00eb20669e0990cb4"
+            }
+        }
+    }
+}
