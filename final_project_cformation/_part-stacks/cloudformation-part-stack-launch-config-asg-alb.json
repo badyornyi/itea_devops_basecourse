@@ -374,7 +374,7 @@
                 "DefaultActions": [{
                     "FixedResponseConfig": {
                         "ContentType" : "text/plain",
-                        "MessageBody" : "Hi there! Application Load Balancer is alive",
+                        "MessageBody" : "Hi there! You've reached the default rule of Application Load Balancer listener, because your request was strange.\nUse the GET, Luke.",
                         "StatusCode" : 200
                     },
                     "Type": "fixed-response"
@@ -389,8 +389,8 @@
                     "Type": "forward"
                 }],
                 "Conditions": [{
-                    "Field": "path-pattern",
-                    "Values": [ "/nginx" ]
+                    "Field": "http-request-method",
+                    "Values": [ "GET", "HEAD" ]
                 }],
                 "ListenerArn": { "Ref": "ListenerALB" },
                 "Priority": 1
