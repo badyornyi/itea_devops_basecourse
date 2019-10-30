@@ -1,5 +1,5 @@
 {
-    "Description": "AWS CloudFormation Template for Final project: EC2 instance with SG and IAM role for access to S3 bucket and located in created VPC; TODO: Have problems with Scaling Policies. It seems to be working, but I don't know why",
+    "Description": "AWS CloudFormation Template for Final project: Launch Configuration, AutoScaling Group with Scaling Policies and CWatch Alarms; TODO: Have problems with Scaling Policies. It seems to be working, but I don't know why",
 
     "Resources": {
         "LaunchConfiguration": {
@@ -118,13 +118,13 @@
                     "IpProtocol": "tcp",
                     "FromPort": 22,
                     "ToPort": 22,
-                    "CidrIp": "0.0.0.0/0"
+                    "CidrIp": { "Ref": "SgInboundSshCidrIp" }
                 },
                 {
                     "IpProtocol": "tcp",
                     "FromPort": 80,
                     "ToPort": 80,
-                    "CidrIp": { "Ref": "SgInboundHttpCidrIp" }
+                    "CidrIp": "0.0.0.0/0"
                 }],
                 "VpcId": {
                     "Ref": "VpcId"
