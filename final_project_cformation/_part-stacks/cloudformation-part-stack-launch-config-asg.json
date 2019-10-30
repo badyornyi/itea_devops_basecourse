@@ -1,0 +1,189 @@
+{
+    "Description": "AWS CloudFormation Template for Final project: EC2 instance with SG and IAM role for access to S3 bucket and located in created VPC; TODO: Have problems with Scaling Policies. It seems to be working, but I don't know why",
+
+    "Resources": {
+        "LaunchConfiguration": {
+            "Type": "AWS::AutoScaling::LaunchConfiguration",
+            "Properties": {
+                "LaunchConfigurationName": "itea-launch-config-final-cf",
+                "ImageId": { "Fn::FindInMap": [ "RegionMap", { "Ref": "AWS::Region" }, "AMI" ] },
+                "InstanceType": { "Ref": "InstanceType" },
+                "IamInstanceProfile": { "Ref": "InstanceProfile" },
+                "InstanceMonitoring": "false",
+                "KeyName": { "Ref": "KeyName" },
+                "SecurityGroups": [{ "Fn::GetAtt": [ "InstanceSecurityGroup", "GroupId" ] }],
+                "UserData": { "Fn::Base64" : { "Fn::Join" : ["", [
+                     "#!/bin/bash -xe\n",
+                     "sudo yum install nginx -y\n",
+                     "sudo service nginx start"
+                ]]}}
+            }
+        },
+        "AutoScalingGroup": {
+            "Type": "AWS::AutoScaling::AutoScalingGroup",
+            "Properties": {
+                "AutoScalingGroupName": "itea-asg-final-cf",
+                "LaunchConfigurationName": { "Ref": "LaunchConfiguration" },
+                "HealthCheckGracePeriod": 300,
+                "HealthCheckType": "EC2",
+                "DesiredCapacity": "2",
+                "MinSize": "1",
+                "MaxSize": "4",
+                "VPCZoneIdentifier": [
+                    { "Ref": "Subnet1Id" },
+                    { "Ref": "Subnet2Id" },
+                    { "Ref": "Subnet3Id" }
+                ]
+            }
+        },
+        "AutoScalingPolicyRaise": {
+            "Type": "AWS::AutoScaling::ScalingPolicy",
+            "Properties": {
+                "AdjustmentType": "ChangeInCapacity",
+                "AutoScalingGroupName": { "Ref": "AutoScalingGroup" },
+                "PolicyType": "StepScaling",
+                "MetricAggregationType": "Average",
+                "StepAdjustments": [
+                    {
+                        "MetricIntervalLowerBound": "1",
+                        "ScalingAdjustment": "1"
+                    }
+                ]
+            }
+        },
+        "AutoScalingPolicyFall": {
+            "Type": "AWS::AutoScaling::ScalingPolicy",
+            "Properties": {
+                "AdjustmentType": "ChangeInCapacity",
+                "AutoScalingGroupName": { "Ref": "AutoScalingGroup" },
+                "PolicyType": "StepScaling",
+                "MetricAggregationType": "Average",
+                "StepAdjustments": [
+                    {
+                        "MetricIntervalLowerBound": "1",
+                        "ScalingAdjustment": "-1"
+                    }
+                ]
+            }
+        },
+        "CloudWatchAlarmRaise": {
+            "Type": "AWS::CloudWatch::Alarm",
+            "Properties": {
+                "AlarmName": "awsec2-itea-asg-final-cf-High-CPU-Utilization",
+                "MetricName": "CPUUtilization",
+                "Namespace": "AWS/EC2",
+                "Statistic": "Average",
+                "Period": "60",
+                "EvaluationPeriods": "1",
+                "Threshold": "1",
+                "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+                "AlarmActions": [{ "Ref": "AutoScalingPolicyRaise" }],
+                "Dimensions": [{
+                    "Name": "AutoScalingGroupName",
+                    "Value": { "Ref": "AutoScalingGroup" }
+                }]
+            }
+        },
+        "CloudWatchAlarmFall": {
+            "Type": "AWS::CloudWatch::Alarm",
+            "Properties": {
+                "AlarmName": "awsec2-itea-asg-final-cf-Low-CPU-Utilization",
+                "MetricName": "CPUUtilization",
+                "Namespace": "AWS/EC2",
+                "Statistic": "Average",
+                "Period": "60",
+                "EvaluationPeriods": "1",
+                "Threshold": "1",
+                "ComparisonOperator": "LessThanThreshold",
+                "AlarmActions": [{ "Ref": "AutoScalingPolicyFall" }],
+                "Dimensions": [{
+                    "Name": "AutoScalingGroupName",
+                    "Value": { "Ref": "AutoScalingGroup" }
+                }]
+            }
+        },
+
+        "InstanceSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "Security group for Final project",
+                "GroupName": "itea-asg-sg-final-cf",
+                "SecurityGroupEgress": [{
+                    "IpProtocol": "-1",
+                    "FromPort": -1,
+                    "ToPort": -1,
+                    "CidrIp": "0.0.0.0/0"
+                }],
+                "SecurityGroupIngress": [{
+                    "IpProtocol": "tcp",
+                    "FromPort": 22,
+                    "ToPort": 22,
+                    "CidrIp": "0.0.0.0/0"
+                },
+                {
+                    "IpProtocol": "tcp",
+                    "FromPort": 80,
+                    "ToPort": 80,
+                    "CidrIp": { "Ref": "SgInboundHttpCidrIp" }
+                }],
+                "VpcId": {
+                    "Ref": "VpcId"
+                }
+            }
+        }
+    },
+
+    "Parameters": {
+        "InstanceType": {
+            "Description": "WebServer EC2 instance type (t2.micro only, for free tier usage)",
+            "Type": "String",
+            "Default": "t2.micro",
+            "AllowedValues": [
+                "t2.micro"
+            ],
+            "ConstraintDescription": "must be a valid EC2 instance type."
+        },
+        "KeyName": {
+            "Description": "Name of an existing EC2 KeyPair to enable SSH access to the instance",
+            "Type": "String"
+        },
+        "Subnet1Id": {
+            "Description": "Id of the VPC subnet",
+            "Type": "String"
+        },
+        "Subnet2Id": {
+            "Description": "Id of the VPC subnet",
+            "Type": "String"
+        },
+        "Subnet3Id": {
+            "Description": "Id of the VPC subnet",
+            "Type": "String"
+        },
+        "VpcId": {
+            "Description": "Id of the VPC",
+            "Type": "String"
+        },
+        "InstanceProfile": {
+            "Description": "Id of the IAM Instance Profile",
+            "Type": "String"
+        },
+        "SgInboundHttpCidrIp": {
+            "Description": "CIDR for Instance Security Group Ingress rule, eg 0.0.0.0/0",
+            "Type": "String"
+        }
+    },
+
+    "Mappings": {
+        "RegionMap": {
+            "eu-central-1": {
+                "AMI": "ami-010fae13a16763bb4"
+            },
+            "eu-west-1": {
+                "AMI": "ami-028188d9b49b32a80"
+            },
+            "us-east-1": {
+                "AMI": "ami-00eb20669e0990cb4"
+            }
+        }
+    }
+}

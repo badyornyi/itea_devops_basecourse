@@ -36,6 +36,12 @@
                     "FromPort": 22,
                     "ToPort": 22,
                     "CidrIp": "0.0.0.0/0"
+                },
+                {
+                    "IpProtocol": "tcp",
+                    "FromPort": 80,
+                    "ToPort": 80,
+                    "CidrIp": { "Ref": "SgInboundHttpCidrIp" }
                 }],
                 "VpcId": {
                     "Ref": "VpcId"
@@ -58,24 +64,12 @@
             "Description": "Name of an existing EC2 KeyPair to enable SSH access to the instance",
             "Type": "String"
         },
-        "Subnet1Id": {
-            "Description": "Id of the VPC subnet",
-            "Type": "String"
-        },
-        "Subnet2Id": {
-            "Description": "Id of the VPC subnet",
-            "Type": "String"
-        },
-        "Subnet3Id": {
-            "Description": "Id of the VPC subnet",
-            "Type": "String"
-        },
-        "VpcId": {
-            "Description": "Id of the VPC",
-            "Type": "String"
-        },
         "InstanceProfile": {
             "Description": "Id of the IAM Instance Profile",
+            "Type": "String"
+        },
+        "SgInboundHttpCidrIp": {
+            "Description": "CIDR for Instance Security Group Ingress rule, eg 0.0.0.0/0",
             "Type": "String"
         }
     },
