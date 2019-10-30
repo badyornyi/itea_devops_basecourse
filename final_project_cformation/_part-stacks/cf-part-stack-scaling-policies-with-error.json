@@ -5,7 +5,7 @@
         "LaunchConfiguration": {
             "Type": "AWS::AutoScaling::LaunchConfiguration",
             "Properties": {
-                "LaunchConfigurationName": "itea-launch-config-final-cf",
+                "LaunchConfigurationName": "itea-launch-config-final-cf-test",
                 "ImageId": { "Fn::FindInMap": [ "RegionMap", { "Ref": "AWS::Region" }, "AMI" ] },
                 "InstanceType": { "Ref": "InstanceType" },
                 "IamInstanceProfile": { "Ref": "InstanceProfile" },
@@ -22,7 +22,7 @@
         "AutoScalingGroup": {
             "Type": "AWS::AutoScaling::AutoScalingGroup",
             "Properties": {
-                "AutoScalingGroupName": "itea-asg-final-cf",
+                "AutoScalingGroupName": "itea-asg-final-cf-test",
                 "LaunchConfigurationName": { "Ref": "LaunchConfiguration" },
                 "HealthCheckGracePeriod": 300,
                 "HealthCheckType": "EC2",
@@ -45,8 +45,8 @@
                 "MetricAggregationType": "Average",
                 "StepAdjustments": [
                     {
-                        "MetricIntervalLowerBound": "1",
-                        "ScalingAdjustment": "1"
+                        "MetricIntervalUpperBound": "1",
+                        "ScalingAdjustment": "2"
                     }
                 ]
             }
@@ -69,7 +69,7 @@
         "CloudWatchAlarmRaise": {
             "Type": "AWS::CloudWatch::Alarm",
             "Properties": {
-                "AlarmName": "awsec2-itea-asg-final-cf-High-CPU-Utilization",
+                "AlarmName": "awsec2-itea-asg-final-cf-High-CPU-Utilization-test",
                 "MetricName": "CPUUtilization",
                 "Namespace": "AWS/EC2",
                 "Statistic": "Average",
@@ -87,7 +87,7 @@
         "CloudWatchAlarmFall": {
             "Type": "AWS::CloudWatch::Alarm",
             "Properties": {
-                "AlarmName": "awsec2-itea-asg-final-cf-Low-CPU-Utilization",
+                "AlarmName": "awsec2-itea-asg-final-cf-Low-CPU-Utilization-test",
                 "MetricName": "CPUUtilization",
                 "Namespace": "AWS/EC2",
                 "Statistic": "Average",
@@ -107,7 +107,7 @@
             "Type": "AWS::EC2::SecurityGroup",
             "Properties": {
                 "GroupDescription": "Security group for Final project",
-                "GroupName": "itea-asg-sg-final-cf",
+                "GroupName": "itea-asg-sg-final-cf-test",
                 "SecurityGroupEgress": [{
                     "IpProtocol": "-1",
                     "FromPort": -1,
