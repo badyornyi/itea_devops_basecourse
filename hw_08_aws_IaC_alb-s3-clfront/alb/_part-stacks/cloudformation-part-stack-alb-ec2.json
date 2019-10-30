@@ -1,0 +1,174 @@
+{
+    "Description": "AWS CloudFormation Template for Application Load Balancer (ALB) creation with attached EC2 Instance",
+
+    "Resources": {
+        "ALB": {
+            "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+            "Properties": {
+                "Name": "itea-alb-ext-stack",
+                "IpAddressType": "ipv4",
+                "Scheme": "internet-facing",
+                "SecurityGroups": [{
+                    "Fn::GetAtt": [ "SecurityGroupALB", "GroupId" ]
+                }],
+                "Subnets": [
+                    "subnet-961a52f0",
+                    "subnet-a9aef6e1",
+                    "subnet-f554deaf"
+                ],
+                "Type": "application"
+            }
+        },
+        "TargetGroupALB":{
+            "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+            "Properties": {
+                "Name": "test-stub-tg-stack",
+                "Port": 80,
+                "Protocol": "HTTP",
+                "Targets": [{ "Id": { "Ref": "Ec2Instance" }, "Port" : 80 }],
+                "TargetType": "instance",
+                "VpcId": "vpc-e7263981",
+
+                "HealthCheckIntervalSeconds": 30,
+                "HealthCheckPath": "/",
+                "HealthCheckPort": "traffic-port",
+                "HealthCheckProtocol": "HTTP",
+                "HealthCheckTimeoutSeconds": 5,
+                "HealthyThresholdCount": 5,
+                "UnhealthyThresholdCount": 2
+            }
+        },
+        "ListenerALB": {
+            "Type": "AWS::ElasticLoadBalancingV2::Listener",
+            "Properties": {
+                "LoadBalancerArn": { "Ref": "ALB" },
+                "Port": 80,
+                "Protocol": "HTTP",
+                "DefaultActions": [{
+                    "FixedResponseConfig": {
+                        "ContentType" : "text/plain",
+                        "MessageBody" : "Hi there!",
+                        "StatusCode" : 200
+                    },
+                    "Type": "fixed-response"
+                }]
+            }
+        },
+        "ListenerRuleNginx": {
+            "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+            "Properties": {
+                "Actions": [{
+                    "TargetGroupArn": { "Ref": "TargetGroupALB" },
+                    "Type": "forward"
+                }],
+                "Conditions": [{
+                    "Field": "path-pattern",
+                    "Values": [ "/nginx" ]
+                }],
+                "ListenerArn": { "Ref": "ListenerALB" },
+                "Priority": 1
+            }
+        },
+        "SecurityGroupALB": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "itea-alb-ext-sg-stack description",
+                "GroupName": "itea-alb-ext-sg-stack",
+                "SecurityGroupEgress": [{
+                    "IpProtocol": "-1",
+                    "FromPort": -1,
+                    "ToPort": -1,
+                    "CidrIp": "0.0.0.0/0"
+                }],
+                "SecurityGroupIngress": [{
+                    "IpProtocol": "tcp",
+                    "FromPort": 80,
+                    "ToPort": 80,
+                    "CidrIp": "0.0.0.0/0"
+                }],
+                "VpcId": "vpc-e7263981"
+            }
+        },
+
+
+
+        "Ec2Instance": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "ImageId": {
+                    "Fn::FindInMap": [ "RegionMap", { "Ref": "AWS::Region" }, "AMI" ]
+                },
+                "InstanceType": {
+                    "Ref": "InstanceType"
+                },
+                "KeyName": {
+                    "Ref": "KeyName"
+                },
+                "SecurityGroupIds": [
+                    { "Fn::GetAtt": [ "SecurityGroup", "GroupId" ] }
+                ],
+                "SubnetId": "subnet-961a52f0",
+                "UserData"       : { "Fn::Base64" : { "Fn::Join" : ["", [
+                     "#!/bin/bash -xe\n",
+                     "sudo yum install nginx -y\n",
+                     "sudo service nginx start"
+                ]]}}
+            }
+        },
+        "SecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "SSH Access security group for HW7",
+                "GroupName": "ssh-access-hw7",
+                "SecurityGroupEgress": [{
+                    "IpProtocol": "-1",
+                    "FromPort": -1,
+                    "ToPort": -1,
+                    "CidrIp": "0.0.0.0/0"
+                }],
+                "SecurityGroupIngress": [{
+                    "IpProtocol": "tcp",
+                    "FromPort": 22,
+                    "ToPort": 22,
+                    "CidrIp": "0.0.0.0/0"
+                },{
+                    "IpProtocol": "tcp",
+                    "FromPort": 80,
+                    "ToPort": 80,
+                    "CidrIp": "0.0.0.0/0"
+                }],
+                "VpcId": "vpc-e7263981"
+            }
+        }
+    },
+
+    "Parameters": {
+        "InstanceType": {
+            "Description": "WebServer EC2 instance type (t2.micro only, for free tier usage)",
+            "Type": "String",
+            "Default": "t2.micro",
+            "AllowedValues": [
+                "t2.micro"
+            ],
+            "ConstraintDescription": "must be a valid EC2 instance type."
+        },
+        "KeyName": {
+            "Description": "Name of an existing EC2 KeyPair to enable SSH access to the instance",
+            "Type": "String"
+        }
+    },
+
+    "Mappings": {
+        "RegionMap": {
+            "eu-central-1": {
+                "AMI": "ami-010fae13a16763bb4"
+            },
+            "eu-west-1": {
+                "AMI": "ami-028188d9b49b32a80"
+            },
+            "us-east-1": {
+                "AMI": "ami-00eb20669e0990cb4"
+            }
+        }
+    }
+}
