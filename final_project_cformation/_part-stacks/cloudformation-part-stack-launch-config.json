@@ -1,0 +1,90 @@
+{
+    "Description": "AWS CloudFormation Template for Final project: Launch Configuration",
+
+    "Resources": {
+        "LaunchConfiguration": {
+            "Type": "AWS::AutoScaling::LaunchConfiguration",
+            "Properties": {
+                "LaunchConfigurationName": "itea-launch-config-final-cf",
+                "ImageId": { "Fn::FindInMap": [ "RegionMap", { "Ref": "AWS::Region" }, "AMI" ] },
+                "InstanceType": { "Ref": "InstanceType" },
+                "IamInstanceProfile": { "Ref": "InstanceProfile" },
+                "InstanceMonitoring": "false",
+                "KeyName": { "Ref": "KeyName" },
+                "SecurityGroups": [{ "Fn::GetAtt": [ "InstanceSecurityGroup", "GroupId" ] }],
+                "UserData": { "Fn::Base64" : { "Fn::Join" : ["", [
+                     "#!/bin/bash -xe\n",
+                     "sudo yum install nginx -y\n",
+                     "sudo service nginx start"
+                ]]}}
+            }
+        },
+
+        "InstanceSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "Security group for Final project",
+                "GroupName": "itea-asg-sg-final-cf",
+                "SecurityGroupEgress": [{
+                    "IpProtocol": "-1",
+                    "FromPort": -1,
+                    "ToPort": -1,
+                    "CidrIp": "0.0.0.0/0"
+                }],
+                "SecurityGroupIngress": [{
+                    "IpProtocol": "tcp",
+                    "FromPort": 22,
+                    "ToPort": 22,
+                    "CidrIp": "0.0.0.0/0"
+                },
+                {
+                    "IpProtocol": "tcp",
+                    "FromPort": 80,
+                    "ToPort": 80,
+                    "CidrIp": { "Ref": "SgInboundHttpCidrIp" }
+                }],
+                "VpcId": {
+                    "Ref": "VpcId"
+                }
+            }
+        }
+    },
+
+    "Parameters": {
+        "InstanceType": {
+            "Description": "WebServer EC2 instance type (t2.micro only, for free tier usage)",
+            "Type": "String",
+            "Default": "t2.micro",
+            "AllowedValues": [
+                "t2.micro"
+            ],
+            "ConstraintDescription": "must be a valid EC2 instance type."
+        },
+        "KeyName": {
+            "Description": "Name of an existing EC2 KeyPair to enable SSH access to the instance",
+            "Type": "String"
+        },
+        "InstanceProfile": {
+            "Description": "Id of the IAM Instance Profile",
+            "Type": "String"
+        },
+        "SgInboundHttpCidrIp": {
+            "Description": "CIDR for Instance Security Group Ingress rule, eg 0.0.0.0/0",
+            "Type": "String"
+        }
+    },
+
+    "Mappings": {
+        "RegionMap": {
+            "eu-central-1": {
+                "AMI": "ami-010fae13a16763bb4"
+            },
+            "eu-west-1": {
+                "AMI": "ami-028188d9b49b32a80"
+            },
+            "us-east-1": {
+                "AMI": "ami-00eb20669e0990cb4"
+            }
+        }
+    }
+}
